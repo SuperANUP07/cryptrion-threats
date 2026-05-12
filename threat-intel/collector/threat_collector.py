@@ -19,8 +19,13 @@ from typing import Optional
 # ──────────────────────────────────────────────
 # CONFIG
 # ──────────────────────────────────────────────
-VERCEL_API_URL = os.getenv("VERCEL_API_URL", "https://threats.cryptrion-cyber.vercel.app/api/posts")
+VERCEL_API_URL = os.getenv("VERCEL_API_URL", "https://cryptrion-threats.vercel.app/api/posts")
 VERCEL_API_SECRET = os.getenv("VERCEL_API_SECRET", "change-me-in-env")  # shared secret
+
+# Debug: confirm env vars are loaded
+print(f"[CONFIG] API URL: {VERCEL_API_URL}")
+print(f"[CONFIG] Secret set: {'YES' if VERCEL_API_SECRET != 'change-me-in-env' else 'NO - using default!'}")
+
 OUTPUT_DIR = Path(__file__).parent.parent / "reports"
 OUTPUT_DIR.mkdir(exist_ok=True)
 
