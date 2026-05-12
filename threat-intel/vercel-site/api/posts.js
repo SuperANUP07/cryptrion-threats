@@ -1,6 +1,6 @@
 // api/posts.js  — Vercel Serverless Function
 // Receives threat reports from the Python collector and stores them.
-// Uses Vercel KV (or falls back to in-memory for dev) for persistence.
+// Uses Upstash Redis (or falls back to in-memory for local dev).
 
 export const config = { runtime: "edge" };   // Edge runtime = fast globally
 
@@ -101,27 +101,48 @@ function corsHeaders(contentType) {
   return h;
 }
 
-// Thin wrapper around @vercel/kv
+// Thin wrapper around @upstash/redis (with in-memory fallback for local dev)
 async function getKV() {
-  try {
-    // Dynamic import so it doesn't crash locally without the package
-    const { kv } = await import("@vercel/kv");
-    return {
-      get: (key) => kv.get(key),
-      set: (key, val) => kv.set(key, val),
-      list: (opts) => kv.keys(opts?.prefix ? `${opts.prefix}*` : "*").then((keys) => ({ keys: keys.map((k) => ({ name: k })) })),
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+  if (url && token) {
+    // ── Production: Upstash Redis via REST ──────────────
+    const call = async (body) => {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const json = await res.json();
+      return json.result;
     };
-  } catch {
-    // Fallback: in-memory store for local dev (data lost on restart)
-    if (!globalThis.__devStore) globalThis.__devStore = {};
-    const store = globalThis.__devStore;
+
     return {
-      get: async (key) => store[key] ?? null,
-      set: async (key, val) => { store[key] = val; },
+      get: async (key) => {
+        const val = await call(["GET", key]);
+        return val ?? null;
+      },
+      set: async (key, val) => {
+        await call(["SET", key, val]);
+      },
       list: async (opts) => {
-        const prefix = opts?.prefix || "";
-        return { keys: Object.keys(store).filter((k) => k.startsWith(prefix)).map((k) => ({ name: k })) };
+        const pattern = opts?.prefix ? `${opts.prefix}*` : "*";
+        const keys = await call(["KEYS", pattern]);
+        return { keys: (keys || []).map((k) => ({ name: k })) };
       },
     };
   }
+
+  // ── Local dev fallback: in-memory (data lost on restart) ──
+  if (!globalThis.__devStore) globalThis.__devStore = {};
+  const store = globalThis.__devStore;
+  return {
+    get: async (key) => store[key] ?? null,
+    set: async (key, val) => { store[key] = val; },
+    list: async (opts) => {
+      const prefix = opts?.prefix || "";
+      return { keys: Object.keys(store).filter((k) => k.startsWith(prefix)).map((k) => ({ name: k })) };
+    },
+  };
 }
