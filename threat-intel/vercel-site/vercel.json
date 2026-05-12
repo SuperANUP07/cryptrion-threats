@@ -1,15 +1,8 @@
 {
   "version": 2,
-  "name": "cryptrion-threats",
-  "builds": [
-    { "src": "public/**", "use": "@vercel/static" },
-    { "src": "api/**/*.js", "use": "@vercel/node" }
-  ],
-  "routes": [
-    { "src": "/api/(.*)", "dest": "/api/$1" },
-    { "src": "/(.*)", "dest": "/public/$1" }
-  ],
-  "env": {
-    "VERCEL_API_SECRET": "@vercel-api-secret"
-  }
+  "outputDirectory": "public",
+  "rewrites": [
+    { "source": "/api/post/:slug", "destination": "/api/post/[slug]" },
+    { "source": "/api/(.*)", "destination": "/api/$1" }
+  ]
 }
