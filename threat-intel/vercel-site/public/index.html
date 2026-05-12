@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Threat Intel — Cryptrion Cyber</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;600;700;800&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #060a0f;
+    --surface: #0b1118;
+    --border: #1a2a3a;
+    --accent: #00e5ff;
+    --accent2: #ff3d5a;
+    --accent3: #39ff14;
+    --text: #c8d8e8;
+    --muted: #556677;
+    --mono: 'Share Tech Mono', monospace;
+    --sans: 'Barlow Condensed', sans-serif;
+    --body: 'Barlow', sans-serif;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--body);
+    min-height:100vh;
+    overflow-x:hidden;
+  }
+
+  /* SCANLINES overlay */
+  body::before{
+    content:'';
+    position:fixed;inset:0;
+    background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,229,255,.018) 2px,rgba(0,229,255,.018) 4px);
+    pointer-events:none;z-index:9999;
+  }
+
+  /* GRID BG */
+  body::after{
+    content:'';
+    position:fixed;inset:0;
+    background-image:
+      linear-gradient(rgba(0,229,255,.04) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(0,229,255,.04) 1px,transparent 1px);
+    background-size:48px 48px;
+    pointer-events:none;z-index:0;
+  }
+
+  /* ── HEADER ── */
+  header{
+    position:relative;z-index:10;
+    padding:0 2rem;
+    border-bottom:1px solid var(--border);
+    background:rgba(6,10,15,.95);
+    backdrop-filter:blur(12px);
+  }
+  .header-inner{
+    max-width:1200px;margin:0 auto;
+    display:flex;align-items:center;gap:2rem;
+    padding:1rem 0;
+  }
+  .logo-block{display:flex;flex-direction:column;}
+  .logo-parent{
+    font-family:var(--mono);
+    font-size:.7rem;color:var(--muted);
+    text-decoration:none;letter-spacing:.15em;
+  }
+  .logo-parent:hover{color:var(--accent);}
+  .logo-parent::before{content:'← ';opacity:.5;}
+  .logo-title{
+    font-family:var(--sans);
+    font-size:1.8rem;font-weight:800;
+    color:#fff;letter-spacing:.06em;
+    line-height:1;
+  }
+  .logo-title span{color:var(--accent);}
+  .header-tag{
+    font-family:var(--mono);font-size:.65rem;
+    color:var(--accent3);letter-spacing:.2em;
+    border:1px solid var(--accent3);
+    padding:.2rem .6rem;opacity:.8;
+    animation:blink 2.4s step-end infinite;
+  }
+  @keyframes blink{0%,100%{opacity:.8;}50%{opacity:.3;}}
+  .header-right{
+    margin-left:auto;
+    font-family:var(--mono);font-size:.65rem;
+    color:var(--muted);text-align:right;line-height:1.7;
+  }
+  .header-right .live{color:var(--accent3);animation:blink 1s step-end infinite;}
+
+  /* ── HERO ── */
+  .hero{
+    position:relative;z-index:10;
+    max-width:1200px;margin:0 auto;
+    padding:3.5rem 2rem 2.5rem;
+  }
+  .hero-label{
+    font-family:var(--mono);font-size:.65rem;color:var(--accent);
+    letter-spacing:.25em;margin-bottom:.75rem;
+  }
+  .hero h1{
+    font-family:var(--sans);font-size:clamp(2.4rem,5vw,4.2rem);
+    font-weight:800;line-height:1;letter-spacing:.02em;
+    color:#fff;margin-bottom:1rem;
+  }
+  .hero h1 em{font-style:normal;color:var(--accent2);}
+  .hero p{
+    font-size:1rem;color:var(--muted);max-width:520px;line-height:1.65;
+  }
+  .stats-bar{
+    display:flex;gap:2.5rem;margin-top:2rem;flex-wrap:wrap;
+  }
+  .stat{display:flex;flex-direction:column;}
+  .stat-num{font-family:var(--sans);font-size:1.8rem;font-weight:700;color:var(--accent);}
+  .stat-label{font-family:var(--mono);font-size:.6rem;color:var(--muted);letter-spacing:.15em;}
+
+  /* ── FEED ── */
+  .feed-section{
+    position:relative;z-index:10;
+    max-width:1200px;margin:0 auto;
+    padding:0 2rem 4rem;
+  }
+  .section-header{
+    display:flex;align-items:center;gap:1rem;
+    margin-bottom:1.5rem;border-bottom:1px solid var(--border);padding-bottom:1rem;
+  }
+  .section-header h2{
+    font-family:var(--sans);font-size:1rem;font-weight:700;
+    letter-spacing:.18em;text-transform:uppercase;color:var(--text);
+  }
+  .section-header::before{
+    content:'//';font-family:var(--mono);color:var(--accent);font-size:.8rem;
+  }
+  .refresh-btn{
+    margin-left:auto;
+    font-family:var(--mono);font-size:.65rem;
+    background:none;border:1px solid var(--border);
+    color:var(--accent);padding:.3rem .8rem;cursor:pointer;
+    letter-spacing:.1em;transition:all .2s;
+  }
+  .refresh-btn:hover{background:var(--accent);color:var(--bg);}
+
+  /* ── POST GRID ── */
+  .post-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(340px,1fr));
+    gap:1.5px;
+    background:var(--border);
+    border:1px solid var(--border);
+  }
+  .post-card{
+    background:var(--surface);
+    padding:1.5rem;
+    cursor:pointer;
+    transition:background .2s;
+    position:relative;overflow:hidden;
+  }
+  .post-card::before{
+    content:'';position:absolute;top:0;left:0;width:3px;height:100%;
+    background:var(--accent);transform:scaleY(0);transform-origin:top;
+    transition:transform .25s;
+  }
+  .post-card:hover{background:#0e1820;}
+  .post-card:hover::before{transform:scaleY(1);}
+  .card-date{
+    font-family:var(--mono);font-size:.6rem;color:var(--muted);
+    letter-spacing:.15em;margin-bottom:.6rem;
+  }
+  .card-title{
+    font-family:var(--sans);font-size:1.15rem;font-weight:700;
+    color:#fff;line-height:1.25;margin-bottom:.75rem;
+  }
+  .card-summary{
+    font-size:.82rem;color:var(--muted);line-height:1.55;margin-bottom:1rem;
+  }
+  .card-badges{display:flex;gap:.4rem;flex-wrap:wrap;}
+  .badge{
+    font-family:var(--mono);font-size:.55rem;letter-spacing:.1em;
+    padding:.15rem .5rem;border:1px solid;
+  }
+  .badge.critical{color:#ff3d5a;border-color:#ff3d5a33;}
+  .badge.high{color:#ff8c00;border-color:#ff8c0033;}
+  .badge.medium{color:#ffd700;border-color:#ffd70033;}
+  .badge.low{color:var(--accent3);border-color:#39ff1433;}
+  .badge.items{color:var(--accent);border-color:var(--accent)33;}
+  .card-arrow{
+    position:absolute;bottom:1.2rem;right:1.2rem;
+    font-family:var(--mono);font-size:.7rem;color:var(--accent);opacity:0;
+    transition:opacity .2s;
+  }
+  .post-card:hover .card-arrow{opacity:1;}
+
+  /* ── LOADING / EMPTY ── */
+  .loading{
+    grid-column:1/-1;padding:3rem;text-align:center;
+    font-family:var(--mono);color:var(--muted);font-size:.8rem;letter-spacing:.15em;
+  }
+  .loading::after{content:'...';animation:dots 1.2s step-end infinite;}
+  @keyframes dots{0%{content:'.';}33%{content:'..';}66%{content:'...';}100%{content:'';}}
+  .empty{
+    grid-column:1/-1;padding:3rem;text-align:center;
+    font-family:var(--mono);color:var(--muted);font-size:.75rem;line-height:2;
+  }
+
+  /* ── MODAL ── */
+  .modal-backdrop{
+    display:none;position:fixed;inset:0;z-index:1000;
+    background:rgba(0,0,0,.85);backdrop-filter:blur(6px);
+    overflow-y:auto;
+  }
+  .modal-backdrop.open{display:block;}
+  .modal{
+    max-width:860px;margin:2rem auto;
+    background:var(--surface);border:1px solid var(--border);
+    position:relative;
+  }
+  .modal-header{
+    padding:1.5rem;border-bottom:1px solid var(--border);
+    display:flex;align-items:flex-start;gap:1rem;
+  }
+  .modal-close{
+    margin-left:auto;background:none;border:1px solid var(--border);
+    color:var(--muted);font-family:var(--mono);font-size:.7rem;
+    padding:.3rem .6rem;cursor:pointer;flex-shrink:0;
+    transition:all .2s;
+  }
+  .modal-close:hover{background:var(--accent2);border-color:var(--accent2);color:#fff;}
+  .modal-title{
+    font-family:var(--sans);font-size:1.4rem;font-weight:800;
+    color:#fff;letter-spacing:.03em;
+  }
+  .modal-meta{
+    display:flex;gap:1.5rem;flex-wrap:wrap;
+    padding:.75rem 1.5rem;background:rgba(0,229,255,.03);
+    border-bottom:1px solid var(--border);
+    font-family:var(--mono);font-size:.6rem;color:var(--muted);letter-spacing:.12em;
+  }
+  .modal-body{
+    padding:1.5rem;font-size:.88rem;line-height:1.75;color:var(--text);
+    max-height:70vh;overflow-y:auto;
+  }
+  /* Markdown rendered styles inside modal */
+  .modal-body h1{font-family:var(--sans);font-size:1.5rem;font-weight:800;color:#fff;margin:1.5rem 0 .75rem;letter-spacing:.03em;}
+  .modal-body h2{font-family:var(--sans);font-size:1.15rem;font-weight:700;color:var(--accent);margin:2rem 0 .6rem;letter-spacing:.08em;border-bottom:1px solid var(--border);padding-bottom:.4rem;}
+  .modal-body h3{font-family:var(--sans);font-size:.95rem;font-weight:700;color:#fff;margin:1.5rem 0 .4rem;}
+  .modal-body p{margin-bottom:.75rem;}
+  .modal-body code{font-family:var(--mono);font-size:.8em;background:rgba(0,229,255,.08);padding:.1em .35em;color:var(--accent);}
+  .modal-body blockquote{border-left:3px solid var(--accent);padding:.5rem 1rem;margin:1rem 0;background:rgba(0,229,255,.04);color:var(--muted);}
+  .modal-body hr{border:none;border-top:1px solid var(--border);margin:1.5rem 0;}
+  .modal-body a{color:var(--accent);text-decoration:none;}
+  .modal-body a:hover{text-decoration:underline;}
+  .modal-body strong{color:#fff;font-weight:600;}
+  .modal-body ul,ol{padding-left:1.5rem;margin-bottom:.75rem;}
+  .modal-body li{margin-bottom:.3rem;}
+
+  /* ── FOOTER ── */
+  footer{
+    position:relative;z-index:10;
+    border-top:1px solid var(--border);padding:1.5rem 2rem;
+    font-family:var(--mono);font-size:.6rem;color:var(--muted);
+    display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem;
+  }
+  footer a{color:var(--accent);text-decoration:none;}
+
+  @media(max-width:600px){
+    .post-grid{grid-template-columns:1fr;}
+    .hero h1{font-size:2rem;}
+    .stats-bar{gap:1.5rem;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo-block">
+      <a href="https://cryptrion-cyber.vercel.app" class="logo-parent">CRYPTRION CYBER</a>
+      <div class="logo-title">THREAT <span>INTEL</span></div>
+    </div>
+    <div class="header-tag">LIVE FEED</div>
+    <div class="header-right">
+      <div class="live">● MONITORING</div>
+      <div id="clock">--:-- UTC</div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="hero-label">// AUTOMATED THREAT INTELLIGENCE</div>
+    <h1>Daily <em>Adversary</em><br>Threat Digest</h1>
+    <p>Continuously collected from CISA KEV, NIST NVD, US-CERT, and curated security news feeds. Automated, parsed, and published.</p>
+    <div class="stats-bar">
+      <div class="stat"><span class="stat-num" id="stat-reports">—</span><span class="stat-label">REPORTS</span></div>
+      <div class="stat"><span class="stat-num" id="stat-sources">5</span><span class="stat-label">SOURCES</span></div>
+      <div class="stat"><span class="stat-num" id="stat-cves">—</span><span class="stat-label">CVEs TRACKED</span></div>
+    </div>
+  </section>
+
+  <section class="feed-section">
+    <div class="section-header">
+      <h2>Intelligence Reports</h2>
+      <button class="refresh-btn" onclick="loadPosts()">↻ REFRESH</button>
+    </div>
+    <div class="post-grid" id="post-grid">
+      <div class="loading">FETCHING INTELLIGENCE</div>
+    </div>
+  </section>
+</main>
+
+<!-- Modal -->
+<div class="modal-backdrop" id="modal" onclick="closeModal(event)">
+  <div class="modal" id="modal-inner">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title"></div>
+      <button class="modal-close" onclick="closeModal()">✕ CLOSE</button>
+    </div>
+    <div class="modal-meta" id="modal-meta"></div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<footer>
+  <span>CRYPTRION CYBER — THREAT INTEL // AUTO-GENERATED REPORTS</span>
+  <span><a href="https://cryptrion-cyber.vercel.app">← MAIN SITE</a></span>
+</footer>
+
+<script>
+// UTC clock
+setInterval(() => {
+  const d = new Date();
+  document.getElementById('clock').textContent =
+    d.getUTCHours().toString().padStart(2,'0') + ':' +
+    d.getUTCMinutes().toString().padStart(2,'0') + ':' +
+    d.getUTCSeconds().toString().padStart(2,'0') + ' UTC';
+}, 1000);
+
+// Load posts
+async function loadPosts() {
+  const grid = document.getElementById('post-grid');
+  grid.innerHTML = '<div class="loading">FETCHING INTELLIGENCE</div>';
+  try {
+    const res = await fetch('/api/posts');
+    const posts = await res.json();
+    renderPosts(posts);
+  } catch(e) {
+    grid.innerHTML = `<div class="empty">// NO DATA RECEIVED<br>${e.message}<br><br>Run the Python collector to generate your first report.</div>`;
+  }
+}
+
+function renderPosts(posts) {
+  const grid = document.getElementById('post-grid');
+  document.getElementById('stat-reports').textContent = posts.length;
+
+  let totalItems = 0;
+  posts.forEach(p => totalItems += (p.total_items || 0));
+  document.getElementById('stat-cves').textContent = totalItems;
+
+  if (!posts.length) {
+    grid.innerHTML = '<div class="empty">// NO REPORTS PUBLISHED YET<br>Run the Python collector to generate your first report.</div>';
+    return;
+  }
+
+  grid.innerHTML = posts.map(post => {
+    const sc = post.severity_counts || {};
+    const badges = Object.entries(sc)
+      .filter(([,v]) => v > 0)
+      .map(([k,v]) => `<span class="badge ${k.toLowerCase()}">${k}: ${v}</span>`)
+      .join('');
+    const dateStr = post.date ? new Date(post.date).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}) : '';
+    return `
+      <div class="post-card" onclick="openPost('${post.slug}')">
+        <div class="card-date">${dateStr}</div>
+        <div class="card-title">${escHtml(post.title)}</div>
+        <div class="card-summary">${escHtml(post.summary)}</div>
+        <div class="card-badges">
+          <span class="badge items">${post.total_items || 0} ITEMS</span>
+          ${badges}
+        </div>
+        <div class="card-arrow">→ READ</div>
+      </div>`;
+  }).join('');
+}
+
+// Open post modal
+async function openPost(slug) {
+  try {
+    const res = await fetch(`/api/post/${slug}`);
+    const post = await res.json();
+    document.getElementById('modal-title').textContent = post.title;
+    const dateStr = post.date ? new Date(post.date).toLocaleString('en-US',{dateStyle:'full',timeStyle:'short'}) : '';
+    document.getElementById('modal-meta').innerHTML =
+      `<span>DATE: ${dateStr}</span><span>ITEMS: ${post.total_items||0}</span><span>SLUG: ${post.slug}</span>`;
+    document.getElementById('modal-body').innerHTML = markdownToHtml(post.content || '');
+    document.getElementById('modal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  } catch(e) {
+    alert('Failed to load post: ' + e.message);
+  }
+}
+
+function closeModal(e) {
+  if (e && e.target !== document.getElementById('modal')) return;
+  document.getElementById('modal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// Minimal markdown→HTML
+function markdownToHtml(md) {
+  return md
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
+    .replace(/^---+$/gm, '<hr/>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank">$1</a>')
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>\n?)+/gs, (m) => `<ul>${m}</ul>`)
+    .split('\n\n')
+    .map(block => block.startsWith('<') ? block : `<p>${block.replace(/\n/g,' ')}</p>`)
+    .join('\n');
+}
+
+function escHtml(s) {
+  return (s||'').replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// Keyboard close
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
+
+// Initial load
+loadPosts();
+</script>
+</body>
+</html>
