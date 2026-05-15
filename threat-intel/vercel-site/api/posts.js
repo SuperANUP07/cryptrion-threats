@@ -1,8 +1,7 @@
-// api/posts.js  — Vercel Serverless Function
-// Receives threat reports from the Python collector and stores them.
-// Uses Upstash Redis (or falls back to in-memory for local dev).
+// api/posts.js — Vercel Edge Function
+// Receives threat reports from the Python collector and stores them in Upstash Redis.
 
-export const config = { runtime: "edge" };   // Edge runtime = fast globally
+export const config = { runtime: "edge" };
 
 const API_SECRET = process.env.VERCEL_API_SECRET || "change-me";
 
@@ -10,14 +9,9 @@ export default async function handler(req) {
   // ── GET: list all posts ──────────────────────────────
   if (req.method === "GET") {
     try {
-      const kv = await getKV();
-      const keys = await kv.list({ prefix: "post:" });
-      const posts = await Promise.all(
-        keys.keys.map(async (k) => {
-          const val = await kv.get(k.name);
-          return val ? JSON.parse(val) : null;
-        })
-      );
+      const kv = getKV();
+      const keys = await kv.list("post:");
+      const posts = await Promise.all(keys.map(k => kv.get(k)));
       const sorted = posts
         .filter(Boolean)
         .sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -26,8 +20,7 @@ export default async function handler(req) {
       });
     } catch (e) {
       return new Response(JSON.stringify({ error: e.message }), {
-        status: 500,
-        headers: corsHeaders("application/json"),
+        status: 500, headers: corsHeaders("application/json"),
       });
     }
   }
@@ -37,25 +30,19 @@ export default async function handler(req) {
     const secret = req.headers.get("x-api-secret");
     if (secret !== API_SECRET) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: corsHeaders("application/json"),
+        status: 401, headers: corsHeaders("application/json"),
       });
     }
-
     try {
       const body = await req.json();
       const { slug, title, date, summary, content, severity_counts, total_items } = body;
-
       if (!slug || !title || !content) {
-        return new Response(JSON.stringify({ error: "Missing required fields: slug, title, content" }), {
-          status: 400,
-          headers: corsHeaders("application/json"),
+        return new Response(JSON.stringify({ error: "Missing required fields" }), {
+          status: 400, headers: corsHeaders("application/json"),
         });
       }
-
       const post = {
-        slug,
-        title,
+        slug, title,
         date: date || new Date().toISOString(),
         summary: summary || "",
         content,
@@ -63,33 +50,25 @@ export default async function handler(req) {
         total_items: total_items || 0,
         updated_at: new Date().toISOString(),
       };
-
-      const kv = await getKV();
-      await kv.set(`post:${slug}`, JSON.stringify(post));
-
+      const kv = getKV();
+      await kv.set(`post:${slug}`, post);
       return new Response(
         JSON.stringify({ ok: true, slug, url: `/post/${slug}` }),
         { status: 201, headers: corsHeaders("application/json") }
       );
     } catch (e) {
       return new Response(JSON.stringify({ error: e.message }), {
-        status: 500,
-        headers: corsHeaders("application/json"),
+        status: 500, headers: corsHeaders("application/json"),
       });
     }
   }
 
-  // ── OPTIONS: CORS preflight ──────────────────────────
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders() });
   }
 
   return new Response("Method Not Allowed", { status: 405 });
 }
-
-// ──────────────────────────────────────────────────────────
-// Helpers
-// ──────────────────────────────────────────────────────────
 
 function corsHeaders(contentType) {
   const h = {
@@ -101,48 +80,54 @@ function corsHeaders(contentType) {
   return h;
 }
 
-// Thin wrapper around @upstash/redis (with in-memory fallback for local dev)
-async function getKV() {
+function getKV() {
   const url = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
 
   if (url && token) {
-    // ── Production: Upstash Redis via REST ──────────────
-    const call = async (body) => {
-      const res = await fetch(url, {
+    const call = async (cmd) => {
+      const res = await fetch(`${url}/pipeline`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify([cmd]),
       });
       const json = await res.json();
-      return json.result;
+      return json[0]?.result ?? null;
     };
 
     return {
       get: async (key) => {
         const val = await call(["GET", key]);
-        return val ?? null;
+        if (!val) return null;
+        try { return JSON.parse(val); } catch { return val; }
       },
       set: async (key, val) => {
-        await call(["SET", key, val]);
+        const str = typeof val === "string" ? val : JSON.stringify(val);
+        // SET with no expiry, then add to persistent index
+        await fetch(`${url}/pipeline`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify([
+            ["SET", key, str],
+            ["SADD", "post-index", key],
+          ]),
+        });
       },
-      list: async (opts) => {
-        const pattern = opts?.prefix ? `${opts.prefix}*` : "*";
-        const keys = await call(["KEYS", pattern]);
-        return { keys: (keys || []).map((k) => ({ name: k })) };
+      list: async (prefix) => {
+        const members = await call(["SMEMBERS", "post-index"]);
+        return (members || []).filter(k => k.startsWith(prefix));
       },
     };
   }
 
-  // ── Local dev fallback: in-memory (data lost on restart) ──
+  // Local dev fallback
   if (!globalThis.__devStore) globalThis.__devStore = {};
+  if (!globalThis.__devIndex) globalThis.__devIndex = new Set();
   const store = globalThis.__devStore;
+  const index = globalThis.__devIndex;
   return {
-    get: async (key) => store[key] ?? null,
-    set: async (key, val) => { store[key] = val; },
-    list: async (opts) => {
-      const prefix = opts?.prefix || "";
-      return { keys: Object.keys(store).filter((k) => k.startsWith(prefix)).map((k) => ({ name: k })) };
-    },
+    get: async (key) => store[key] ? JSON.parse(store[key]) : null,
+    set: async (key, val) => { store[key] = JSON.stringify(val); index.add(key); },
+    list: async (prefix) => [...index].filter(k => k.startsWith(prefix)),
   };
 }
