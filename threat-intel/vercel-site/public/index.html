@@ -352,7 +352,11 @@ async function loadPosts() {
   }
 }
 
+// Store posts globally so modal can access full data
+let _allPosts = [];
+
 function renderPosts(posts) {
+  _allPosts = posts;
   const grid = document.getElementById('post-grid');
   document.getElementById('stat-reports').textContent = posts.length;
 
@@ -365,7 +369,7 @@ function renderPosts(posts) {
     return;
   }
 
-  grid.innerHTML = posts.map(post => {
+  grid.innerHTML = posts.map((post, index) => {
     const sc = post.severity_counts || {};
     const badges = Object.entries(sc)
       .filter(([,v]) => v > 0)
@@ -373,7 +377,7 @@ function renderPosts(posts) {
       .join('');
     const dateStr = post.date ? new Date(post.date).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}) : '';
     return `
-      <div class="post-card" onclick="openPost('${post.slug}')">
+      <div class="post-card" onclick="openPost(${index})">
         <div class="card-date">${dateStr}</div>
         <div class="card-title">${escHtml(post.title)}</div>
         <div class="card-summary">${escHtml(post.summary)}</div>
@@ -386,21 +390,17 @@ function renderPosts(posts) {
   }).join('');
 }
 
-// Open post modal
-async function openPost(slug) {
-  try {
-    const res = await fetch(`/api/post/${slug}`);
-    const post = await res.json();
-    document.getElementById('modal-title').textContent = post.title;
-    const dateStr = post.date ? new Date(post.date).toLocaleString('en-US',{dateStyle:'full',timeStyle:'short'}) : '';
-    document.getElementById('modal-meta').innerHTML =
-      `<span>DATE: ${dateStr}</span><span>ITEMS: ${post.total_items||0}</span><span>SLUG: ${post.slug}</span>`;
-    document.getElementById('modal-body').innerHTML = markdownToHtml(post.content || '');
-    document.getElementById('modal').classList.add('open');
-    document.body.style.overflow = 'hidden';
-  } catch(e) {
-    alert('Failed to load post: ' + e.message);
-  }
+// Open post modal — uses cached data, no extra API call needed
+function openPost(index) {
+  const post = _allPosts[index];
+  if (!post) return;
+  document.getElementById('modal-title').textContent = post.title || '';
+  const dateStr = post.date ? new Date(post.date).toLocaleString('en-US',{dateStyle:'full',timeStyle:'short'}) : '';
+  document.getElementById('modal-meta').innerHTML =
+    `<span>DATE: ${dateStr}</span><span>ITEMS: ${post.total_items||0}</span><span>SLUG: ${post.slug||''}</span>`;
+  document.getElementById('modal-body').innerHTML = markdownToHtml(post.content || post.content_markdown || '');
+  document.getElementById('modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
 }
 
 function closeModal(e) {
