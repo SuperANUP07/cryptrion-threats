@@ -1,7 +1,7 @@
 {
   "name": "cryptrion-threats",
   "version": "1.0.0",
-  "description": "Cryptrion Cyber — Automated Threat Intelligence Blog",
+  "type": "module",
   "private": true,
   "dependencies": {}
 }
