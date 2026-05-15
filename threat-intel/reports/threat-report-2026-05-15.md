@@ -1,6 +1,6 @@
 # Threat Intelligence Report — May 15, 2026
 
-> **Generated:** 2026-05-15 04:26 UTC  
+> **Generated:** 2026-05-15 04:58 UTC  
 > **Total items collected:** 44  
 > **Sources:** 5
 
