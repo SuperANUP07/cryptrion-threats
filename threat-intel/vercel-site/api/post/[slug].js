@@ -1,5 +1,6 @@
 // api/post/[slug].js — Get a single post by slug (uses Upstash Redis)
 
+
 export const config = { runtime: "edge" };
 
 export default async function handler(req) {
@@ -13,8 +14,10 @@ export default async function handler(req) {
     });
   }
 
+
   const upstashUrl = process.env.UPSTASH_REDIS_REST_URL;
   const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+
 
   try {
     let post = null;
@@ -36,12 +39,14 @@ export default async function handler(req) {
         : null;
     }
 
+
     if (!post) {
       return new Response(JSON.stringify({ error: "Not found" }), {
         status: 404,
         headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
       });
     }
+
 
     return new Response(JSON.stringify(post), {
       headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
